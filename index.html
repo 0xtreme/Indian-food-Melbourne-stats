@@ -137,11 +137,23 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .animate-in { animation: fadeIn 0.4s ease forwards; }
 
+  /* Legend toggle */
+  .legend-toggle { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0; margin-left: 8px; transition: transform 0.2s; }
+  .legend.collapsed .legend-content { display: none; }
+  .legend.collapsed .legend-toggle { transform: rotate(180deg); }
+  .legend-header { display: flex; align-items: center; justify-content: space-between; }
+
   /* Responsive */
   @media (max-width: 768px) {
-    .side-panel { width: calc(100vw - 24px); }
+    .side-panel { width: calc(100vw - 24px); max-height: 55vh; }
     .filter-panel { width: calc(100vw - 24px); right: 12px; }
     .layer-toggles { display: none; }
+    .legend { max-width: 200px; font-size: 10px; padding: 10px 12px; }
+    .legend-gradient-bar { width: 100px; }
+    .legend-gradient-labels { width: 100px; }
+    .nav-title { font-size: 14px; }
+    .top-nav { padding: 0 12px; }
+    .top-nav a.layer-btn { display: none; }
   }
 </style>
 </head>
@@ -221,19 +233,25 @@
 
 <!-- Legend -->
 <div class="legend" id="legend">
-  <div class="legend-title">Indian-Born Population %</div>
-  <div class="legend-gradient">
-    <div class="legend-gradient-bar" style="background:linear-gradient(to right, #FFFDE4, #FED976, #FEB24C, #FD8D3C, #FC4E2A, #BD0026);"></div>
+  <div class="legend-header">
+    <div class="legend-title" style="margin-bottom:0;">Legend</div>
+    <button class="legend-toggle" onclick="document.getElementById('legend').classList.toggle('collapsed')">&#9660;</button>
   </div>
-  <div class="legend-gradient-labels"><span>0%</span><span>10%</span><span>20%+</span></div>
-  <div class="legend-title" style="margin-top:10px;">Restaurant Cuisine</div>
-  <div class="legend-dots">
-    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--south-indian)"></div>South Indian</div>
-    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--north-indian)"></div>North Indian</div>
-    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--sri-lankan)"></div>Sri Lankan</div>
-    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--nepalese)"></div>Nepalese</div>
-    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--bangladeshi)"></div>Bangladeshi</div>
-    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--general)"></div>General</div>
+  <div class="legend-content">
+    <div class="legend-title" style="margin-top:8px;">Indian-Born Population %</div>
+    <div class="legend-gradient">
+      <div class="legend-gradient-bar" style="background:linear-gradient(to right, #FFFDE4, #FED976, #FEB24C, #FD8D3C, #FC4E2A, #BD0026);"></div>
+    </div>
+    <div class="legend-gradient-labels"><span>0%</span><span>10%</span><span>20%+</span></div>
+    <div class="legend-title" style="margin-top:10px;">Restaurant Cuisine</div>
+    <div class="legend-dots">
+      <div class="legend-dot-item"><div class="legend-dot" style="background:var(--south-indian)"></div>South Indian</div>
+      <div class="legend-dot-item"><div class="legend-dot" style="background:var(--north-indian)"></div>North Indian</div>
+      <div class="legend-dot-item"><div class="legend-dot" style="background:var(--sri-lankan)"></div>Sri Lankan</div>
+      <div class="legend-dot-item"><div class="legend-dot" style="background:var(--nepalese)"></div>Nepalese</div>
+      <div class="legend-dot-item"><div class="legend-dot" style="background:var(--bangladeshi)"></div>Bangladeshi</div>
+      <div class="legend-dot-item"><div class="legend-dot" style="background:var(--general)"></div>General</div>
+    </div>
   </div>
 </div>
 
@@ -532,6 +550,13 @@ map.on('load', () => {
 
   // Build opportunity list
   buildOpportunities();
+
+  // Collapse side panel and legend on mobile
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidePanel').classList.add('collapsed');
+    document.getElementById('panelToggle').innerHTML = '&#9654;';
+    document.getElementById('legend').classList.add('collapsed');
+  }
 
   // Remove loading screen
   setTimeout(() => {
