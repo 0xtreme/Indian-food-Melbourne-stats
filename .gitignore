@@ -1,0 +1,6 @@
+.env
+data/census_sa2_vic.zip
+data/sa2_boundaries.zip
+__pycache__/
+*.pyc
+.DS_Store

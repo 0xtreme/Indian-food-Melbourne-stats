@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — Melbourne Indian Food Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0A0E1A; --panel: #111827; --panel-border: #1F2937;
+    --text: #F9FAFB; --text-muted: #9CA3AF; --accent: #F59E0B;
+    --accent-red: #EF4444; --accent-green: #10B981;
+  }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .top-nav { position: sticky; top: 0; z-index: 100; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+    background: rgba(10, 14, 26, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--panel-border); }
+  .nav-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .nav-title span { color: var(--accent); }
+  .nav-link { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--accent); color: var(--accent); font-size: 13px; font-weight: 500; transition: all 0.2s; }
+  .nav-link:hover { background: rgba(245,158,11,0.15); text-decoration: none; }
+
+  .container { max-width: 820px; margin: 0 auto; padding: 48px 24px 80px; }
+  h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .subtitle { font-size: 15px; color: var(--text-muted); margin-bottom: 40px; }
+  h2 { font-size: 20px; font-weight: 600; margin-top: 48px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--panel-border); }
+  h3 { font-size: 16px; font-weight: 600; margin-top: 28px; margin-bottom: 10px; color: var(--accent); }
+  p { margin-bottom: 14px; color: #D1D5DB; font-size: 14.5px; }
+  ul, ol { margin-bottom: 14px; padding-left: 24px; color: #D1D5DB; font-size: 14.5px; }
+  li { margin-bottom: 6px; }
+  code { background: rgba(31,41,55,0.7); padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--accent); font-family: 'SF Mono', 'Fira Code', monospace; }
+
+  .source-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .source-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .source-name { font-size: 16px; font-weight: 600; }
+  .source-badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(16,185,129,0.15); color: #6EE7B7; }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #FCD34D; }
+  .badge-blue { background: rgba(96,165,250,0.15); color: #93C5FD; }
+  .source-desc { font-size: 13.5px; color: var(--text-muted); margin-bottom: 10px; }
+  .source-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-muted); }
+  .source-meta strong { color: var(--text); font-weight: 600; }
+
+  .method-step { display: flex; gap: 16px; margin-bottom: 20px; }
+  .step-num { width: 32px; height: 32px; border-radius: 50%; background: rgba(245,158,11,0.15); color: var(--accent); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .step-content { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .step-desc { font-size: 13px; color: var(--text-muted); }
+
+  .formula-box { background: rgba(31,41,55,0.5); border: 1px solid var(--panel-border); border-radius: 8px; padding: 16px 20px; margin: 16px 0; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: #D1D5DB; line-height: 1.8; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 20px 0; }
+  .stat-item { background: rgba(31,41,55,0.5); border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .disclaimer { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 16px 20px; margin-top: 32px; font-size: 13px; color: #FCA5A5; }
+  .disclaimer strong { color: #FECACA; }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 24px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-title"><span>&#127835;</span> Melbourne Indian Food Intelligence</div>
+  <a href="melbourne-indian-food-intel.html" class="nav-link">&#8592; Back to Map</a>
+</nav>
+
+<div class="container">
+
+<h1>About This Project</h1>
+<p class="subtitle">How we built an interactive intelligence map of Indian cuisine across Greater Melbourne, using open government data, place APIs, and census demographics.</p>
+
+<div class="stats-grid">
+  <div class="stat-item"><div class="stat-num">1,437</div><div class="stat-label">Restaurants</div></div>
+  <div class="stat-item"><div class="stat-num">361</div><div class="stat-label">SA2 Areas</div></div>
+  <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">Data Sources</div></div>
+  <div class="stat-item"><div class="stat-num">40%</div><div class="stat-label">Peak Indian Pop.</div></div>
+</div>
+
+<h2>Data Sources</h2>
+
+<div class="source-card">
+  <div class="source-header">
+    <div class="source-name">ABS Census 2021 &mdash; Demographics</div>
+    <span class="source-badge badge-green">Government</span>
+  </div>
+  <div class="source-desc">The Australian Bureau of Statistics Census 2021 provides population demographics at the SA2 (Statistical Area Level 2) geographic level. We extract three key datasets from the General Community Profile DataPack for Victoria.</div>
+  <div class="source-meta">
+    <div><strong>Coverage:</strong> 361 SA2 areas across Greater Melbourne</div>
+    <div><strong>Format:</strong> CSV in ZIP DataPack (~13 MB)</div>
+  </div>
+  <h3>Fields Used</h3>
+  <ul>
+    <li><strong>G09G &mdash; Country of Birth:</strong> <code>P_India_Tot</code> &mdash; total persons born in India per SA2</li>
+    <li><strong>G01 &mdash; Selected Person Characteristics:</strong> <code>Tot_P_P</code> &mdash; total population (both sexes) per SA2</li>
+    <li><strong>G02 &mdash; Selected Medians and Averages:</strong> <code>Median_tot_hhd_inc_weekly</code> &mdash; median weekly household income, converted to annual (* 52)</li>
+  </ul>
+  <h3>SA2 Boundaries</h3>
+  <p>SA2 polygon boundaries are fetched from the ABS ArcGIS REST API at <code>geo.abs.gov.au</code>, filtered to the Greater Melbourne GCCSA region. Geometries are simplified (Douglas-Peucker tolerance ~100m) for web rendering.</p>
+  <div class="source-meta">
+    <div><strong>API:</strong> <a href="https://geo.abs.gov.au/arcgis/rest/services/ASGS2021/SA2/MapServer/0">ABS ASGS 2021 SA2 MapServer</a></div>
+    <div><strong>DataPack:</strong> <a href="https://www.abs.gov.au/census/find-census-data/datapacks">ABS Census DataPacks</a></div>
+  </div>
+</div>
+
+<div class="source-card">
+  <div class="source-header">
+    <div class="source-name">Google Places API &mdash; Restaurant Supply &amp; Ratings</div>
+    <span class="source-badge badge-amber">API</span>
+  </div>
+  <div class="source-desc">The Google Places API (New) provides the most comprehensive restaurant data, including ratings and review counts. We search for "Indian restaurant" across 30 key Melbourne suburbs, covering both inner city and outer growth corridors.</div>
+  <div class="source-meta">
+    <div><strong>Coverage:</strong> 30 suburbs, ~414 unique restaurants</div>
+    <div><strong>Max per suburb:</strong> 20 results (API limit)</div>
+  </div>
+  <h3>Fields Used</h3>
+  <ul>
+    <li><code>displayName</code> &mdash; restaurant name</li>
+    <li><code>location</code> &mdash; latitude and longitude</li>
+    <li><code>rating</code> &mdash; average star rating (1&ndash;5)</li>
+    <li><code>userRatingCount</code> &mdash; total number of reviews</li>
+    <li><code>formattedAddress</code> &mdash; street address</li>
+    <li><code>priceLevel</code> &mdash; price bracket (0&ndash;4)</li>
+  </ul>
+  <h3>Suburbs Searched</h3>
+  <p>Dandenong, Clayton, Truganina, Tarneit, Point Cook, Glen Waverley, Craigieburn, Werribee, Springvale, Footscray, Melbourne CBD, Epping, Berwick, St Albans, Caroline Springs, Hoppers Crossing, Deer Park, Sunshine, Narre Warren, Cranbourne, Pakenham, Box Hill, Preston, Reservoir, Melton, Richmond, South Yarra, Roxburgh Park, Wyndham Vale, Williams Landing.</p>
+  <div class="source-meta">
+    <div><strong>API:</strong> <a href="https://developers.google.com/maps/documentation/places/web-service/text-search">Google Places Text Search (New)</a></div>
+  </div>
+</div>
+
+<div class="source-card">
+  <div class="source-header">
+    <div class="source-name">Foursquare Open Source Places &mdash; Restaurant Supply</div>
+    <span class="source-badge badge-blue">Open Data</span>
+  </div>
+  <div class="source-desc">Foursquare's Open Source Places dataset on HuggingFace contains ~100M+ places globally. We download only the Australian Parquet partitions (files 98 &amp; 99, ~240 MB total), filter to the Melbourne bounding box, and identify Indian restaurants by name keywords.</div>
+  <div class="source-meta">
+    <div><strong>Coverage:</strong> ~1,060 Indian restaurants in Greater Melbourne</div>
+    <div><strong>Format:</strong> Parquet via HuggingFace Datasets API</div>
+  </div>
+  <h3>Fields Used</h3>
+  <ul>
+    <li><code>name</code> &mdash; place name</li>
+    <li><code>latitude</code> / <code>longitude</code> &mdash; coordinates</li>
+    <li><code>locality</code> &mdash; suburb name</li>
+    <li><code>postcode</code> &mdash; postal code</li>
+    <li><code>address</code> &mdash; street address</li>
+    <li><code>fsq_category_ids</code> &mdash; Foursquare taxonomy category IDs</li>
+  </ul>
+  <h3>Filtering Method</h3>
+  <p>Indian restaurants are identified by matching name keywords (indian, curry, dosa, tandoori, biryani, masala, sri lanka, nepal, etc.) and then filtered to exclude non-restaurant places (grocery stores, taxis, salons) using both category IDs and name exclusions.</p>
+  <div class="source-meta">
+    <div><strong>Dataset:</strong> <a href="https://huggingface.co/datasets/foursquare/fsq-os-places">foursquare/fsq-os-places</a></div>
+    <div><strong>License:</strong> Apache 2.0</div>
+  </div>
+</div>
+
+<div class="source-card">
+  <div class="source-header">
+    <div class="source-name">City of Melbourne CLUE &mdash; CBD Restaurants</div>
+    <span class="source-badge badge-green">Government</span>
+  </div>
+  <div class="source-desc">The Census of Land Use and Employment (CLUE) dataset from Melbourne's Open Data portal provides official business registration data for cafes and restaurants within the City of Melbourne municipality (CBD and immediate surrounds only).</div>
+  <div class="source-meta">
+    <div><strong>Coverage:</strong> ~36 Indian restaurants in CBD area</div>
+    <div><strong>Limitation:</strong> City of Melbourne LGA only (not Greater Melbourne)</div>
+  </div>
+  <h3>Fields Used</h3>
+  <ul>
+    <li><code>trading_name</code> &mdash; business trading name</li>
+    <li><code>latitude</code> / <code>longitude</code> &mdash; coordinates</li>
+    <li><code>business_address</code> &mdash; street address</li>
+    <li><code>number_of_seats</code> &mdash; seating capacity</li>
+    <li><code>clue_small_area</code> &mdash; sub-area within the municipality</li>
+    <li><code>census_year</code> &mdash; year of survey (latest: 2023)</li>
+  </ul>
+  <div class="source-meta">
+    <div><strong>API:</strong> <a href="https://data.melbourne.vic.gov.au/explore/dataset/cafes-and-restaurants-with-seating-capacity">Melbourne Open Data (OpenDataSoft)</a></div>
+  </div>
+</div>
+
+<h2>Methodology</h2>
+
+<div class="method-step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <div class="step-title">Fetch SA2 Boundaries</div>
+    <div class="step-desc">Download 361 SA2 polygon boundaries for Greater Melbourne from the ABS ArcGIS REST API. Simplify geometries for web display.</div>
+  </div>
+</div>
+
+<div class="method-step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <div class="step-title">Join Census Demographics</div>
+    <div class="step-desc">Download the ABS Census 2021 DataPack for Victoria. Extract Indian-born population (G09G), total population (G01), and median income (G02). Join to SA2 boundaries by SA2 code. Compute <code>india_pct = india_born / total_pop * 100</code>.</div>
+  </div>
+</div>
+
+<div class="method-step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <div class="step-title">Collect Restaurant Data</div>
+    <div class="step-desc">Fetch Indian restaurants from three sources: Foursquare (Parquet download + keyword filter), Google Places API (text search across 30 suburbs), and CLUE (Melbourne Open Data API). Deduplicate across sources by name + location proximity.</div>
+  </div>
+</div>
+
+<div class="method-step">
+  <div class="step-num">4</div>
+  <div class="step-content">
+    <div class="step-title">Cuisine Classification</div>
+    <div class="step-desc">Each restaurant is classified into a sub-cuisine by keyword matching on its name: South Indian, North Indian, Sri Lankan, Nepalese, Bangladeshi, or General Indian.</div>
+  </div>
+</div>
+
+<div class="method-step">
+  <div class="step-num">5</div>
+  <div class="step-content">
+    <div class="step-title">Spatial Join &amp; Gap Analysis</div>
+    <div class="step-desc">Restaurants are spatially joined to SA2 polygons to count restaurants per suburb. An opportunity (gap) score is computed for each SA2 area.</div>
+  </div>
+</div>
+
+<h3>Opportunity Score Formula</h3>
+<div class="formula-box">
+opportunity_score = (<br>
+&nbsp;&nbsp;(india_pct / max_india_pct) * 0.4 +<br>
+&nbsp;&nbsp;(median_income / max_income) * 0.2 +<br>
+&nbsp;&nbsp;(1 - supply_per_10k / max_supply) * 0.4<br>
+)
+</div>
+<p>Where <code>supply_per_10k</code> = number of Indian restaurants per 10,000 Indian-born residents in that SA2. A high score indicates high Indian population, decent income, but few restaurants &mdash; a market opportunity.</p>
+
+<h3>Gap Classification</h3>
+<ul>
+  <li><strong>Underserved:</strong> fewer than 4 restaurants per 10,000 Indian residents</li>
+  <li><strong>Balanced:</strong> 4&ndash;8 restaurants per 10,000 Indian residents</li>
+  <li><strong>Well-served:</strong> more than 8 restaurants per 10,000 Indian residents</li>
+</ul>
+
+<h3>Demand Score (per restaurant)</h3>
+<div class="formula-box">
+demand_score = rating * log10(review_count + 1)
+</div>
+<p>This normalises for both rating quality and volume. A 4.5-star restaurant with 500 reviews scores higher than a 5-star restaurant with 3 reviews.</p>
+
+<h2>Deduplication</h2>
+<p>Restaurants appearing in multiple sources are deduplicated by matching on name (case-insensitive) and coordinates (rounded to 3 decimal places, ~100m). When a duplicate is found, the Google Places version is preferred (it has ratings and reviews), followed by Foursquare, then CLUE.</p>
+
+<h2>Limitations</h2>
+<ul>
+  <li><strong>Census data is from 2021.</strong> Melbourne's Indian population has grown significantly since then, particularly in western growth corridors (Tarneit, Truganina, Wyndham Vale). Real 2026 figures are likely 20&ndash;40% higher in these areas.</li>
+  <li><strong>Google Places returns max 20 results per query.</strong> Suburbs with more than 20 Indian restaurants (e.g. Dandenong, Melbourne CBD) are under-counted.</li>
+  <li><strong>CLUE data covers CBD only.</strong> The City of Melbourne CLUE dataset only includes businesses within the municipality of Melbourne. Outer council areas are not covered.</li>
+  <li><strong>Foursquare data has no ratings.</strong> Foursquare OSP does not include ratings or review counts, so these restaurants show 0 for both fields.</li>
+  <li><strong>Cuisine classification is heuristic.</strong> Sub-cuisine (South Indian vs North Indian etc.) is inferred from restaurant names using keyword matching. This is imperfect &mdash; a restaurant called "Spice Village" is classified as General even if it serves South Indian food.</li>
+  <li><strong>Some false positives may exist.</strong> Keyword-based filtering from Foursquare may include non-Indian restaurants that happen to have matching words in their name (e.g. "Spice" in a non-Indian context).</li>
+</ul>
+
+<h2>Tech Stack</h2>
+<ul>
+  <li><strong>Map:</strong> <a href="https://maplibre.org/">MapLibre GL JS</a> &mdash; open-source map rendering with dark CartoDB base tiles</li>
+  <li><strong>Data pipeline:</strong> Python (pandas, geopandas, pyarrow, requests, shapely)</li>
+  <li><strong>Dashboard:</strong> Single HTML file with vanilla JavaScript &mdash; no build step, no framework dependencies</li>
+  <li><strong>Hosting:</strong> Static files on GitHub Pages</li>
+</ul>
+
+<h2>Source Code</h2>
+<p>The data pipeline (<code>prepare_data.py</code>) and dashboard source are open source. The pipeline fetches live data from all sources and generates the <code>data/dashboard_data.js</code> file that powers the map.</p>
+
+<div class="disclaimer">
+  <strong>Disclaimer:</strong> This is an independent data visualisation project for educational and analytical purposes. It is not affiliated with the Australian Bureau of Statistics, Google, Foursquare, or the City of Melbourne. Restaurant data may be incomplete, outdated, or contain errors. Do not use this data as the sole basis for business decisions.
+</div>
+
+</div>
+</body>
+</html>

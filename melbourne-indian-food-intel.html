@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Melbourne Indian Food Intelligence</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0A0E1A; --panel: #111827; --panel-border: #1F2937;
+    --text: #F9FAFB; --text-muted: #9CA3AF; --accent: #F59E0B;
+    --accent-red: #EF4444; --accent-green: #10B981;
+    --south-indian: #F59E0B; --north-indian: #60A5FA;
+    --sri-lankan: #A78BFA; --nepalese: #34D399;
+    --bangladeshi: #F472B6; --general: #9CA3AF;
+  }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; width: 100vw; }
+  #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+  /* Top Navigation */
+  .top-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+    background: rgba(10, 14, 26, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--panel-border); }
+  .nav-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; display: flex; align-items: center; gap: 10px; }
+  .nav-title span { color: var(--accent); }
+  .layer-toggles { display: flex; gap: 6px; }
+  .layer-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--panel-border); background: transparent; color: var(--text-muted); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all 0.25s ease; font-family: inherit; }
+  .layer-btn.active { background: rgba(245, 158, 11, 0.15); border-color: var(--accent); color: var(--accent); }
+  .layer-btn:hover { border-color: #4B5563; color: var(--text); }
+
+  /* Side Panel */
+  .side-panel { position: fixed; top: 64px; left: 12px; width: 370px; max-height: calc(100vh - 80px); z-index: 90;
+    background: rgba(17, 24, 39, 0.92); backdrop-filter: blur(16px); border: 1px solid var(--panel-border);
+    border-radius: 12px; overflow-y: auto; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+    scrollbar-width: thin; scrollbar-color: #374151 transparent; }
+  .side-panel.collapsed { transform: translateX(-390px); opacity: 0; pointer-events: none; }
+  .side-panel::-webkit-scrollbar { width: 5px; }
+  .side-panel::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+  .panel-toggle { position: fixed; top: 64px; left: 12px; z-index: 89; width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(17,24,39,0.9); border: 1px solid var(--panel-border); color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.25s; }
+  .panel-toggle:hover { color: var(--text); border-color: #4B5563; }
+  .side-panel:not(.collapsed) ~ .panel-toggle { left: 392px; }
+
+  .panel-section { padding: 18px; border-bottom: 1px solid var(--panel-border); }
+  .panel-section:last-child { border-bottom: none; }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 12px; }
+  .suburb-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .suburb-meta { font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { background: rgba(31,41,55,0.6); border-radius: 8px; padding: 12px; }
+  .stat-value { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .stat-value.amber { color: var(--accent); }
+  .stat-value.red { color: var(--accent-red); }
+  .stat-value.green { color: var(--accent-green); }
+  .stat-value.blue { color: var(--north-indian); }
+
+  .gap-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 600; }
+  .gap-badge.underserved { background: rgba(239,68,68,0.15); color: #FCA5A5; }
+  .gap-badge.balanced { background: rgba(245,158,11,0.15); color: #FCD34D; }
+  .gap-badge.well-served { background: rgba(16,185,129,0.15); color: #6EE7B7; }
+
+  /* Bar chart */
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bar-label { font-size: 11.5px; color: var(--text-muted); width: 90px; text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 20px; background: rgba(31,41,55,0.5); border-radius: 4px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); min-width: 2px; }
+  .bar-count { font-size: 11px; font-weight: 600; color: var(--text); width: 20px; text-align: center; }
+
+  /* Restaurant table */
+  .resto-table { width: 100%; font-size: 12px; }
+  .resto-table th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 6px 0; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .resto-table td { padding: 7px 0; border-top: 1px solid rgba(31,41,55,0.5); vertical-align: middle; }
+  .resto-table .cuisine-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .resto-table .stars { color: var(--accent); font-size: 11px; }
+
+  /* Top Opportunities */
+  .opp-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(31,41,55,0.4); border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: background 0.2s; }
+  .opp-item:hover { background: rgba(31,41,55,0.7); }
+  .opp-rank { width: 24px; height: 24px; border-radius: 50%; background: rgba(245,158,11,0.15); color: var(--accent); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .opp-info { flex: 1; }
+  .opp-name { font-size: 13px; font-weight: 600; }
+  .opp-detail { font-size: 11px; color: var(--text-muted); }
+  .opp-score { font-size: 15px; font-weight: 700; color: var(--accent-red); }
+
+  /* Filter Panel */
+  .filter-panel { position: fixed; top: 64px; right: 12px; width: 250px; z-index: 90;
+    background: rgba(17,24,39,0.92); backdrop-filter: blur(16px); border: 1px solid var(--panel-border);
+    border-radius: 12px; overflow: hidden; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease; }
+  .filter-panel.collapsed { transform: translateX(270px); opacity: 0; pointer-events: none; }
+  .filter-header { padding: 14px 16px; border-bottom: 1px solid var(--panel-border); display: flex; align-items: center; justify-content: space-between; }
+  .filter-header h3 { font-size: 13px; font-weight: 600; }
+  .filter-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; }
+  .filter-body { padding: 14px 16px; max-height: calc(100vh - 150px); overflow-y: auto; }
+  .filter-group { margin-bottom: 16px; }
+  .filter-group-title { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 8px; }
+  .filter-check { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; font-size: 12.5px; }
+  .filter-check input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+  .filter-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .filter-range { width: 100%; margin-top: 4px; accent-color: var(--accent); }
+  .filter-range-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); }
+
+  /* Tooltip */
+  .map-tooltip { position: absolute; z-index: 200; pointer-events: none; background: rgba(17,24,39,0.95); border: 1px solid var(--panel-border);
+    border-radius: 10px; padding: 14px; min-width: 220px; backdrop-filter: blur(8px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translate(-50%, -110%); transition: opacity 0.15s; }
+  .map-tooltip.hidden { opacity: 0; }
+  .tooltip-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .tooltip-cuisine { font-size: 11.5px; color: var(--accent); margin-bottom: 8px; }
+  .tooltip-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+  .tooltip-row .label { color: var(--text-muted); }
+  .tooltip-suburb-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .tooltip-stat { font-size: 12px; margin-bottom: 3px; color: var(--text-muted); }
+  .tooltip-stat strong { color: var(--text); font-weight: 600; }
+
+  /* Legend */
+  .legend { position: fixed; bottom: 24px; left: 12px; z-index: 90; background: rgba(17,24,39,0.9); backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border); border-radius: 10px; padding: 14px 16px; }
+  .legend-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 8px; }
+  .legend-gradient { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .legend-gradient-bar { width: 140px; height: 10px; border-radius: 3px; }
+  .legend-gradient-labels { display: flex; justify-content: space-between; width: 140px; font-size: 9.5px; color: var(--text-muted); }
+  .legend-dots { display: flex; flex-wrap: wrap; gap: 10px; }
+  .legend-dot-item { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--text-muted); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.5); }
+
+  /* Loading */
+  .loading-screen { position: fixed; inset: 0; z-index: 1000; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.6s ease; }
+  .loading-screen.fade-out { opacity: 0; pointer-events: none; }
+  .loading-spinner { width: 40px; height: 40px; border: 3px solid var(--panel-border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .loading-text { margin-top: 16px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-in { animation: fadeIn 0.4s ease forwards; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .side-panel { width: calc(100vw - 24px); }
+    .filter-panel { width: calc(100vw - 24px); right: 12px; }
+    .layer-toggles { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Loading Melbourne Indian Food Intelligence...</div>
+</div>
+
+<div id="map"></div>
+
+<!-- Top Nav -->
+<nav class="top-nav">
+  <div class="nav-title">
+    <span>&#127835;</span> Melbourne Indian Food Intelligence
+  </div>
+  <div class="layer-toggles">
+    <button class="layer-btn active" data-layer="choropleth" onclick="toggleLayer('choropleth', this)">Population Density</button>
+    <button class="layer-btn active" data-layer="restaurants" onclick="toggleLayer('restaurants', this)">Restaurants</button>
+    <button class="layer-btn" data-layer="labels" onclick="toggleLayer('labels', this)">Suburb Labels</button>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button class="layer-btn" onclick="toggleFilterPanel()" style="border-color: var(--accent); color: var(--accent);">&#9881; Filters</button>
+    <a href="about.html" class="layer-btn" style="border-color: var(--panel-border); color: var(--text-muted); text-decoration:none; display:inline-flex; align-items:center;">About &amp; Data Sources</a>
+  </div>
+</nav>
+
+<!-- Side Panel -->
+<div class="side-panel" id="sidePanel">
+  <!-- Top Opportunities (always visible) -->
+  <div class="panel-section" id="opportunitiesSection">
+    <div class="section-title">&#128293; Top Opportunity Zones</div>
+    <div id="opportunitiesList"></div>
+  </div>
+  <!-- Suburb Detail (shown on selection) -->
+  <div id="suburbDetail" style="display:none;"></div>
+</div>
+<button class="panel-toggle" id="panelToggle" onclick="toggleSidePanel()">&#9664;</button>
+
+<!-- Filter Panel -->
+<div class="filter-panel collapsed" id="filterPanel">
+  <div class="filter-header">
+    <h3>Filters</h3>
+    <button class="filter-close" onclick="toggleFilterPanel()">&#10005;</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-group">
+      <div class="filter-group-title">Cuisine Type</div>
+      <label class="filter-check"><input type="checkbox" checked data-cuisine="south_indian"><span class="filter-dot" style="background:var(--south-indian)"></span>South Indian</label>
+      <label class="filter-check"><input type="checkbox" checked data-cuisine="north_indian"><span class="filter-dot" style="background:var(--north-indian)"></span>North Indian</label>
+      <label class="filter-check"><input type="checkbox" checked data-cuisine="sri_lankan"><span class="filter-dot" style="background:var(--sri-lankan)"></span>Sri Lankan</label>
+      <label class="filter-check"><input type="checkbox" checked data-cuisine="nepalese"><span class="filter-dot" style="background:var(--nepalese)"></span>Nepalese</label>
+      <label class="filter-check"><input type="checkbox" checked data-cuisine="bangladeshi"><span class="filter-dot" style="background:var(--bangladeshi)"></span>Bangladeshi</label>
+      <label class="filter-check"><input type="checkbox" checked data-cuisine="general"><span class="filter-dot" style="background:var(--general)"></span>General Indian</label>
+    </div>
+    <div class="filter-group">
+      <div class="filter-group-title">Minimum Rating</div>
+      <input type="range" class="filter-range" id="ratingFilter" min="0" max="5" step="0.5" value="0" oninput="applyFilters()">
+      <div class="filter-range-labels"><span>Any</span><span id="ratingValue">Any</span></div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-group-title">Minimum Reviews</div>
+      <input type="range" class="filter-range" id="reviewFilter" min="0" max="500" step="25" value="0" oninput="applyFilters()">
+      <div class="filter-range-labels"><span>0</span><span id="reviewValue">Any</span></div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-group-title">Restaurant Type</div>
+      <label class="filter-check"><input type="checkbox" checked id="showIndependent">Independent Only</label>
+    </div>
+    <button class="layer-btn" style="width:100%;margin-top:8px;border-color:var(--accent);color:var(--accent);" onclick="resetFilters()">Reset All</button>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="map-tooltip hidden" id="tooltip"></div>
+
+<!-- Legend -->
+<div class="legend" id="legend">
+  <div class="legend-title">Indian-Born Population %</div>
+  <div class="legend-gradient">
+    <div class="legend-gradient-bar" style="background:linear-gradient(to right, #FFFDE4, #FED976, #FEB24C, #FD8D3C, #FC4E2A, #BD0026);"></div>
+  </div>
+  <div class="legend-gradient-labels"><span>0%</span><span>10%</span><span>20%+</span></div>
+  <div class="legend-title" style="margin-top:10px;">Restaurant Cuisine</div>
+  <div class="legend-dots">
+    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--south-indian)"></div>South Indian</div>
+    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--north-indian)"></div>North Indian</div>
+    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--sri-lankan)"></div>Sri Lankan</div>
+    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--nepalese)"></div>Nepalese</div>
+    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--bangladeshi)"></div>Bangladeshi</div>
+    <div class="legend-dot-item"><div class="legend-dot" style="background:var(--general)"></div>General</div>
+  </div>
+</div>
+
+<script src="data/dashboard_data.js"></script>
+<script>
+window.addEventListener('load', function() {
+
+// ═══════════════════════════════════════════════════════════════
+// If dashboard_data.js was loaded externally, skip synthetic data
+// ═══════════════════════════════════════════════════════════════
+if (typeof window.sa2GeoJSON !== 'undefined') {
+  // Real data loaded from prepare_data.py output — jump to map init
+  initMap(window.sa2GeoJSON, window.restaurantGeoJSON, window.labelGeoJSON, window.suburbs, window.restaurants);
+  return;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SYNTHETIC SAMPLE DATA (used when no external data is loaded)
+// ═══════════════════════════════════════════════════════════════
+
+// ── Seeded random for reproducible data ──
+function sRand(seed) { let x = Math.sin(seed * 9301 + 49297) * 233280; return x - Math.floor(x); }
+
+// ── Suburb data (SA2-level) ──
+const suburbs = [
+  { name:"Truganina", lng:144.739, lat:-37.757, india_pct:22.3, total_pop:32000, restaurants:8, income:78500, size:1.3 },
+  { name:"Tarneit", lng:144.696, lat:-37.830, india_pct:20.1, total_pop:45000, restaurants:10, income:82000, size:1.4 },
+  { name:"Dandenong", lng:145.215, lat:-37.988, india_pct:18.4, total_pop:28000, restaurants:15, income:62400, size:1.0 },
+  { name:"Williams Landing", lng:144.746, lat:-37.862, india_pct:17.5, total_pop:12000, restaurants:3, income:89000, size:0.8 },
+  { name:"Wyndham Vale", lng:144.625, lat:-37.887, india_pct:16.8, total_pop:22000, restaurants:3, income:74500, size:1.1 },
+  { name:"Point Cook", lng:144.748, lat:-37.904, india_pct:16.2, total_pop:38000, restaurants:5, income:96000, size:1.2 },
+  { name:"Caroline Springs", lng:144.737, lat:-37.737, india_pct:15.5, total_pop:25000, restaurants:4, income:88000, size:1.0 },
+  { name:"Clayton", lng:145.119, lat:-37.925, india_pct:15.1, total_pop:22000, restaurants:10, income:58600, size:0.85 },
+  { name:"Craigieburn", lng:144.942, lat:-37.600, india_pct:14.3, total_pop:35000, restaurants:6, income:79500, size:1.3 },
+  { name:"Deer Park", lng:144.773, lat:-37.770, india_pct:13.8, total_pop:20000, restaurants:4, income:67200, size:0.9 },
+  { name:"St Albans", lng:144.800, lat:-37.741, india_pct:12.8, total_pop:20000, restaurants:4, income:58100, size:0.9 },
+  { name:"Glen Waverley", lng:145.163, lat:-37.879, india_pct:12.4, total_pop:42000, restaurants:8, income:105000, size:1.1 },
+  { name:"Hoppers Crossing", lng:144.700, lat:-37.884, india_pct:11.6, total_pop:30000, restaurants:4, income:71500, size:1.0 },
+  { name:"Werribee", lng:144.661, lat:-37.899, india_pct:11.2, total_pop:40000, restaurants:5, income:75800, size:1.2 },
+  { name:"Springvale", lng:145.153, lat:-37.950, india_pct:10.5, total_pop:18000, restaurants:6, income:54200, size:0.8 },
+  { name:"Epping", lng:145.028, lat:-37.649, india_pct:10.1, total_pop:28000, restaurants:4, income:72800, size:1.1 },
+  { name:"Berwick", lng:145.349, lat:-38.034, india_pct:9.8, total_pop:35000, restaurants:5, income:92500, size:1.2 },
+  { name:"Roxburgh Park", lng:144.927, lat:-37.627, india_pct:9.5, total_pop:22000, restaurants:3, income:68900, size:1.0 },
+  { name:"Cranbourne", lng:145.283, lat:-38.097, india_pct:8.5, total_pop:32000, restaurants:4, income:71000, size:1.1 },
+  { name:"Footscray", lng:144.900, lat:-37.800, india_pct:8.2, total_pop:15000, restaurants:7, income:62000, size:0.7 },
+  { name:"Pakenham", lng:145.485, lat:-38.073, india_pct:7.2, total_pop:40000, restaurants:3, income:76500, size:1.3 },
+  { name:"Melbourne CBD", lng:144.963, lat:-37.814, india_pct:6.8, total_pop:45000, restaurants:22, income:68500, size:0.6 },
+  { name:"Reservoir", lng:145.007, lat:-37.717, india_pct:6.1, total_pop:28000, restaurants:3, income:63200, size:1.0 },
+  { name:"Box Hill", lng:145.122, lat:-37.819, india_pct:5.5, total_pop:25000, restaurants:4, income:72000, size:0.85 },
+  { name:"Preston", lng:145.001, lat:-37.750, india_pct:5.2, total_pop:30000, restaurants:3, income:67800, size:0.95 },
+  { name:"Sunshine", lng:144.833, lat:-37.788, india_pct:11.0, total_pop:18000, restaurants:5, income:56400, size:0.8 },
+  { name:"Narre Warren", lng:145.303, lat:-37.993, india_pct:10.8, total_pop:29000, restaurants:5, income:78000, size:1.1 },
+  { name:"Melton", lng:144.580, lat:-37.687, india_pct:8.0, total_pop:36000, restaurants:3, income:73200, size:1.3 },
+  { name:"South Yarra", lng:144.989, lat:-37.838, india_pct:3.2, total_pop:22000, restaurants:5, income:115000, size:0.6 },
+  { name:"Richmond", lng:144.998, lat:-37.819, india_pct:4.5, total_pop:26000, restaurants:8, income:88000, size:0.7 },
+];
+
+// Compute derived fields
+suburbs.forEach((s, i) => {
+  s.india_born = Math.round(s.total_pop * s.india_pct / 100);
+  const supplyPer10k = s.restaurants / (s.india_born / 10000 || 1);
+  const maxSupply = 25;
+  const maxPct = 25;
+  const maxIncome = 120000;
+  s.gap_score = ((s.india_pct / maxPct) * 0.4 + (s.income / maxIncome) * 0.2 + ((1 - Math.min(supplyPer10k / maxSupply, 1)) * 0.4));
+  s.gap_label = supplyPer10k < 4 ? 'Underserved' : supplyPer10k < 8 ? 'Balanced' : 'Well-served';
+  s.gap_class = supplyPer10k < 4 ? 'underserved' : supplyPer10k < 8 ? 'balanced' : 'well-served';
+  s.idx = i;
+});
+
+// ── Generate SA2 polygons ──
+function genPolygon(lng, lat, size, seed) {
+  const pts = 10;
+  const coords = [];
+  for (let i = 0; i < pts; i++) {
+    const angle = (i / pts) * Math.PI * 2;
+    const r = 0.65 + sRand(seed + i * 7.3) * 0.7;
+    const baseLng = 0.022 * size;
+    const baseLat = 0.016 * size;
+    coords.push([
+      +(lng + Math.cos(angle) * baseLng * r).toFixed(5),
+      +(lat + Math.sin(angle) * baseLat * r).toFixed(5)
+    ]);
+  }
+  coords.push(coords[0]);
+  return [coords];
+}
+
+const sa2GeoJSON = {
+  type: "FeatureCollection",
+  features: suburbs.map((s, i) => ({
+    type: "Feature",
+    properties: { ...s },
+    geometry: { type: "Polygon", coordinates: genPolygon(s.lng, s.lat, s.size, i * 100 + 42) }
+  }))
+};
+
+// ── Generate restaurant data ──
+const cuisineNames = {
+  south_indian: ["Dosa Corner","Madras Kitchen","Chettinad Palace","Kerala House","Udupi Cafe","Saravana Bhavan","Dosai Place","Temple Kitchen","Banana Leaf","Idli Factory","Malabar Express","Appam House","Rasam","Thali Junction","Nellore Spice"],
+  north_indian: ["Tandoori Nights","Curry Palace","Mughal Garden","Delhi Darbar","Punjabi Junction","Masala Theory","Tikka Town","Nawab Kitchen","Royal India","Spice Village","Butter Chicken House","Biryani Express","Naan & Grill","Roti King","Lucknow 49"],
+  sri_lankan: ["Colombo Kitchen","Lanka Spice","Jaffna House","Ceylon Inn","Sigiriya","Hopper Hut","Kandy Flame"],
+  nepalese: ["Everest Kitchen","Kathmandu Momos","Gurkha Cafe","Himalayan Flavours","Yeti Restaurant","Sherpa Bites"],
+  bangladeshi: ["Dhaka Grill","Bengal Tiger","Bangla Bites","Sylhet Spice"],
+  general: ["Spice Route","Turmeric","Cardamom Club","Saffron","Masala Bar","Chai Pani","Naan & Curry","The Curry Bowl","Indian Chilli","Mirchi","Flame & Spice","Curry Vault"]
+};
+const cuisineLabels = {
+  south_indian:"South Indian", north_indian:"North Indian", sri_lankan:"Sri Lankan",
+  nepalese:"Nepalese", bangladeshi:"Bangladeshi", general:"Indian Restaurant"
+};
+const cuisineColors = {
+  south_indian:"#F59E0B", north_indian:"#60A5FA", sri_lankan:"#A78BFA",
+  nepalese:"#34D399", bangladeshi:"#F472B6", general:"#9CA3AF"
+};
+
+const restaurants = [];
+let rSeed = 1;
+suburbs.forEach(sub => {
+  const count = sub.restaurants;
+  const cuisinePool = [];
+  // Weight cuisine distribution
+  for (let i = 0; i < Math.ceil(count*0.3); i++) cuisinePool.push('south_indian');
+  for (let i = 0; i < Math.ceil(count*0.3); i++) cuisinePool.push('north_indian');
+  for (let i = 0; i < Math.ceil(count*0.12); i++) cuisinePool.push('sri_lankan');
+  for (let i = 0; i < Math.ceil(count*0.08); i++) cuisinePool.push('nepalese');
+  for (let i = 0; i < Math.ceil(count*0.05); i++) cuisinePool.push('bangladeshi');
+  for (let i = 0; i < Math.ceil(count*0.15); i++) cuisinePool.push('general');
+
+  for (let i = 0; i < count; i++) {
+    const cuisine = cuisinePool[i % cuisinePool.length];
+    const names = cuisineNames[cuisine];
+    const name = names[Math.floor(sRand(rSeed++) * names.length)];
+    const suffix = restaurants.filter(r => r.name === name).length > 0 ? (' ' + sub.name) : '';
+    const rating = +(3.4 + sRand(rSeed++) * 1.5).toFixed(1);
+    const reviews = Math.round(10 + sRand(rSeed++) * 700);
+    const chain = sRand(rSeed++) > 0.88;
+    const oLng = (sRand(rSeed++) - 0.5) * 0.018 * sub.size;
+    const oLat = (sRand(rSeed++) - 0.5) * 0.013 * sub.size;
+    restaurants.push({
+      name: name + suffix, cuisine, rating, reviews, chain,
+      suburb: sub.name,
+      lng: +(sub.lng + oLng).toFixed(5),
+      lat: +(sub.lat + oLat).toFixed(5),
+      demand_score: +(rating * Math.log10(reviews + 1)).toFixed(2),
+      address: `${Math.round(sRand(rSeed++)*400+1)} ${['High','Church','Station','Foster','Thomas','Main','Centre','Railway','Market'][Math.floor(sRand(rSeed++)*9)]} St`
+    });
+  }
+});
+
+const restaurantGeoJSON = {
+  type: "FeatureCollection",
+  features: restaurants.map((r, i) => ({
+    type: "Feature",
+    properties: { ...r, id: i },
+    geometry: { type: "Point", coordinates: [r.lng, r.lat] }
+  }))
+};
+
+// Suburb label points
+const labelGeoJSON = {
+  type: "FeatureCollection",
+  features: suburbs.map(s => ({
+    type: "Feature",
+    properties: { name: s.name, india_pct: s.india_pct },
+    geometry: { type: "Point", coordinates: [s.lng, s.lat] }
+  }))
+};
+
+// Call initMap with synthetic data
+initMap(sa2GeoJSON, restaurantGeoJSON, labelGeoJSON, suburbs, restaurants);
+
+}); // end window.onload
+
+// ═══════════════════════════════════════════════════════════════
+// MAP INITIALIZATION (works with both real and synthetic data)
+// ═══════════════════════════════════════════════════════════════
+function initMap(sa2GeoJSON, restaurantGeoJSON, labelGeoJSON, suburbs, restaurants) {
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  center: [144.96, -37.82],
+  zoom: 9.8,
+  pitch: 15,
+  bearing: 0,
+  maxZoom: 16,
+  minZoom: 8,
+  attributionControl: false
+});
+map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+
+let selectedSuburb = null;
+const layerVisibility = { choropleth: true, restaurants: true, labels: false };
+
+map.on('load', () => {
+  // ── Choropleth Layer ──
+  map.addSource('sa2', { type: 'geojson', data: sa2GeoJSON });
+  map.addLayer({
+    id: 'sa2-fill', type: 'fill', source: 'sa2',
+    paint: {
+      'fill-color': ['interpolate', ['linear'], ['get', 'india_pct'],
+        0, '#FFFDE4', 5, '#FED976', 10, '#FEB24C', 15, '#FD8D3C', 20, '#FC4E2A', 25, '#BD0026'],
+      'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.7, 0.5]
+    }
+  });
+  map.addLayer({
+    id: 'sa2-line', type: 'line', source: 'sa2',
+    paint: { 'line-color': '#374151', 'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 2, 0.8],
+      'line-opacity': 0.7 }
+  });
+
+  // ── Restaurant Layer ──
+  map.addSource('restaurants', { type: 'geojson', data: restaurantGeoJSON });
+  map.addLayer({
+    id: 'restaurant-dots', type: 'circle', source: 'restaurants',
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 4, 13, 8, 16, 14],
+      'circle-color': ['match', ['get', 'cuisine'],
+        'south_indian', '#F59E0B', 'north_indian', '#60A5FA', 'sri_lankan', '#A78BFA',
+        'nepalese', '#34D399', 'bangladeshi', '#F472B6', '#9CA3AF'],
+      'circle-stroke-color': 'rgba(255,255,255,0.55)',
+      'circle-stroke-width': 1.2,
+      'circle-opacity': 0.9
+    }
+  });
+  map.addLayer({
+    id: 'restaurant-glow', type: 'circle', source: 'restaurants',
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 8, 13, 16, 16, 24],
+      'circle-color': ['match', ['get', 'cuisine'],
+        'south_indian', '#F59E0B', 'north_indian', '#60A5FA', 'sri_lankan', '#A78BFA',
+        'nepalese', '#34D399', 'bangladeshi', '#F472B6', '#9CA3AF'],
+      'circle-opacity': 0.08, 'circle-blur': 1
+    }
+  }, 'restaurant-dots');
+
+  // ── Suburb Labels ──
+  map.addSource('labels', { type: 'geojson', data: labelGeoJSON });
+  map.addLayer({
+    id: 'suburb-labels', type: 'symbol', source: 'labels',
+    layout: {
+      'text-field': ['format', ['get', 'name'], { 'font-scale': 1 }, '\n', {}, ['concat', ['to-string', ['get', 'india_pct']], '%'], { 'font-scale': 0.75 }],
+      'text-size': 11, 'text-anchor': 'center', 'text-allow-overlap': false,
+      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+      visibility: 'none'
+    },
+    paint: { 'text-color': '#E5E7EB', 'text-halo-color': 'rgba(10,14,26,0.8)', 'text-halo-width': 1.5 }
+  });
+
+  // ── Interactions ──
+  let hoveredSuburb = null;
+
+  // Suburb hover
+  map.on('mousemove', 'sa2-fill', (e) => {
+    map.getCanvas().style.cursor = 'pointer';
+    if (hoveredSuburb !== null) map.setFeatureState({ source: 'sa2', id: hoveredSuburb }, { hover: false });
+    hoveredSuburb = e.features[0].id;
+    map.setFeatureState({ source: 'sa2', id: hoveredSuburb }, { hover: true });
+    const p = e.features[0].properties;
+    showSuburbTooltip(e.point, p);
+  });
+  map.on('mouseleave', 'sa2-fill', () => {
+    map.getCanvas().style.cursor = '';
+    if (hoveredSuburb !== null) map.setFeatureState({ source: 'sa2', id: hoveredSuburb }, { hover: false });
+    hoveredSuburb = null;
+    hideTooltip();
+  });
+
+  // Suburb click
+  map.on('click', 'sa2-fill', (e) => {
+    const p = e.features[0].properties;
+    selectSuburb(p.name);
+    map.flyTo({ center: [p.lng, p.lat], zoom: 12.5, pitch: 20, duration: 1200 });
+  });
+
+  // Restaurant hover
+  map.on('mouseenter', 'restaurant-dots', (e) => {
+    map.getCanvas().style.cursor = 'pointer';
+    const p = e.features[0].properties;
+    showRestaurantTooltip(e.point, p);
+  });
+  map.on('mousemove', 'restaurant-dots', (e) => {
+    const p = e.features[0].properties;
+    showRestaurantTooltip(e.point, p);
+  });
+  map.on('mouseleave', 'restaurant-dots', () => {
+    map.getCanvas().style.cursor = '';
+    hideTooltip();
+  });
+
+  // Set feature IDs for state management
+  sa2GeoJSON.features.forEach((f, i) => { f.id = i; });
+  map.getSource('sa2').setData(sa2GeoJSON);
+
+  // Build opportunity list
+  buildOpportunities();
+
+  // Remove loading screen
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('fade-out');
+    setTimeout(() => document.getElementById('loading').style.display = 'none', 600);
+  }, 800);
+});
+
+// ── Tooltip functions ──
+const tooltip = document.getElementById('tooltip');
+
+function showRestaurantTooltip(point, p) {
+  const stars = '★'.repeat(Math.round(p.rating)) + '☆'.repeat(5 - Math.round(p.rating));
+  tooltip.innerHTML = `
+    <div class="tooltip-name">${p.name}</div>
+    <div class="tooltip-cuisine" style="color:${cuisineColors[p.cuisine]}">${cuisineLabels[p.cuisine]}</div>
+    <div class="tooltip-row"><span class="label">Rating</span><span class="stars" style="color:var(--accent)">${stars} ${p.rating}</span></div>
+    <div class="tooltip-row"><span class="label">Reviews</span><span>${Number(p.reviews).toLocaleString()}</span></div>
+    <div class="tooltip-row"><span class="label">Suburb</span><span>${p.suburb}</span></div>
+    <div class="tooltip-row"><span class="label">Address</span><span>${p.address}</span></div>
+    ${p.chain === 'true' || p.chain === true ? '<div class="tooltip-row"><span class="label">Chain</span><span>Yes</span></div>' : ''}
+  `;
+  tooltip.classList.remove('hidden');
+  positionTooltip(point);
+}
+
+function showSuburbTooltip(point, p) {
+  const gapClass = p.gap_class || 'balanced';
+  tooltip.innerHTML = `
+    <div class="tooltip-suburb-name">${p.name}</div>
+    <div class="tooltip-stat">Indian population: <strong>${p.india_pct}%</strong> (${Number(p.india_born).toLocaleString()})</div>
+    <div class="tooltip-stat">Indian restaurants: <strong>${p.restaurants}</strong></div>
+    <div class="tooltip-stat">Median income: <strong>$${Number(p.income).toLocaleString()}</strong></div>
+    <div style="margin-top:6px"><span class="gap-badge ${gapClass}">${gapClass === 'underserved' ? '🔴' : gapClass === 'balanced' ? '🟡' : '🟢'} ${p.gap_label}</span></div>
+  `;
+  tooltip.classList.remove('hidden');
+  positionTooltip(point);
+}
+
+function positionTooltip(point) {
+  const mapRect = document.getElementById('map').getBoundingClientRect();
+  let x = point.x;
+  let y = point.y;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = (y - 12) + 'px';
+  // Adjust if near edges
+  const tr = tooltip.getBoundingClientRect();
+  if (tr.left < 10) tooltip.style.left = (x + tr.width/2 + 10) + 'px';
+  if (tr.right > mapRect.width - 10) tooltip.style.left = (x - tr.width/2 - 10) + 'px';
+  if (tr.top < 60) { tooltip.style.top = (y + 20) + 'px'; tooltip.style.transform = 'translate(-50%, 0)'; }
+  else { tooltip.style.transform = 'translate(-50%, -110%)'; }
+}
+
+function hideTooltip() { tooltip.classList.add('hidden'); }
+
+// ── Suburb selection & panel ──
+function selectSuburb(name) {
+  selectedSuburb = suburbs.find(s => s.name === name);
+  if (!selectedSuburb) return;
+
+  const s = selectedSuburb;
+  const suburbRestos = restaurants.filter(r => r.suburb === name).sort((a,b) => b.demand_score - a.demand_score);
+
+  // Cuisine breakdown
+  const cuisineCounts = {};
+  suburbRestos.forEach(r => { cuisineCounts[r.cuisine] = (cuisineCounts[r.cuisine] || 0) + 1; });
+  const maxCount = Math.max(...Object.values(cuisineCounts), 1);
+
+  let barsHTML = '';
+  Object.entries(cuisineCounts).sort((a,b) => b[1] - a[1]).forEach(([c, count]) => {
+    barsHTML += `<div class="bar-row">
+      <div class="bar-label">${cuisineLabels[c]}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${count/maxCount*100}%;background:${cuisineColors[c]}"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>`;
+  });
+
+  // Restaurant table
+  let tableHTML = `<table class="resto-table"><thead><tr><th>Name</th><th>Rating</th><th>Reviews</th></tr></thead><tbody>`;
+  suburbRestos.slice(0, 8).forEach(r => {
+    tableHTML += `<tr>
+      <td><span class="cuisine-dot" style="background:${cuisineColors[r.cuisine]}"></span>${r.name}</td>
+      <td class="stars">★ ${r.rating}</td>
+      <td>${r.reviews}</td>
+    </tr>`;
+  });
+  tableHTML += '</tbody></table>';
+
+  const detail = document.getElementById('suburbDetail');
+  detail.style.display = 'block';
+  detail.innerHTML = `
+    <div class="panel-section animate-in">
+      <div class="suburb-name">${s.name}</div>
+      <div class="suburb-meta">SA2 Statistical Area &middot; Greater Melbourne</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-value amber">${s.india_pct}%</div><div class="stat-label">Indian-born pop.</div></div>
+        <div class="stat-card"><div class="stat-value blue">${s.india_born.toLocaleString()}</div><div class="stat-label">Indian residents</div></div>
+        <div class="stat-card"><div class="stat-value">${s.restaurants}</div><div class="stat-label">Indian restaurants</div></div>
+        <div class="stat-card"><div class="stat-value green">$${(s.income/1000).toFixed(0)}k</div><div class="stat-label">Median income</div></div>
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:var(--text-muted)">Market status:</span>
+        <span class="gap-badge ${s.gap_class}">${s.gap_class === 'underserved' ? '🔴' : s.gap_class === 'balanced' ? '🟡' : '🟢'} ${s.gap_label}</span>
+      </div>
+      <div style="margin-top:8px;"><span style="font-size:12px;color:var(--text-muted)">Opportunity score:</span>
+        <div style="margin-top:4px;background:rgba(31,41,55,0.6);border-radius:4px;height:8px;overflow:hidden;">
+          <div style="height:100%;width:${s.gap_score*100}%;background:linear-gradient(90deg,var(--accent-green),var(--accent),var(--accent-red));border-radius:4px;"></div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:var(--accent);margin-top:2px;">${(s.gap_score*100).toFixed(0)}%</div>
+      </div>
+    </div>
+    <div class="panel-section animate-in" style="animation-delay:0.05s">
+      <div class="section-title">Cuisine Breakdown</div>
+      ${barsHTML}
+    </div>
+    <div class="panel-section animate-in" style="animation-delay:0.1s">
+      <div class="section-title">Top Restaurants</div>
+      ${tableHTML}
+    </div>
+  `;
+
+  // Ensure panel is open
+  document.getElementById('sidePanel').classList.remove('collapsed');
+}
+
+// ── Top Opportunities ──
+function buildOpportunities() {
+  const opps = suburbs
+    .filter(s => s.india_pct > 10 && s.restaurants < 5 && s.income > 65000)
+    .sort((a, b) => b.gap_score - a.gap_score)
+    .slice(0, 5);
+
+  // Fallback: if not enough, use top gap_score suburbs
+  if (opps.length < 3) {
+    const extra = suburbs.sort((a,b) => b.gap_score - a.gap_score).filter(s => !opps.includes(s)).slice(0, 5 - opps.length);
+    opps.push(...extra);
+  }
+
+  const list = document.getElementById('opportunitiesList');
+  list.innerHTML = opps.map((s, i) => `
+    <div class="opp-item" onclick="selectSuburb('${s.name}'); map.flyTo({center:[${s.lng},${s.lat}],zoom:12.5,pitch:20,duration:1200})">
+      <div class="opp-rank">${i + 1}</div>
+      <div class="opp-info">
+        <div class="opp-name">${s.name}</div>
+        <div class="opp-detail">${s.india_pct}% Indian &middot; ${s.restaurants} restaurants &middot; $${(s.income/1000).toFixed(0)}k income</div>
+      </div>
+      <div class="opp-score">${(s.gap_score * 100).toFixed(0)}</div>
+    </div>
+  `).join('');
+}
+
+// ── Layer toggles ──
+function toggleLayer(layer, btn) {
+  layerVisibility[layer] = !layerVisibility[layer];
+  btn.classList.toggle('active');
+
+  if (layer === 'choropleth') {
+    map.setLayoutProperty('sa2-fill', 'visibility', layerVisibility[layer] ? 'visible' : 'none');
+    map.setLayoutProperty('sa2-line', 'visibility', layerVisibility[layer] ? 'visible' : 'none');
+  } else if (layer === 'restaurants') {
+    map.setLayoutProperty('restaurant-dots', 'visibility', layerVisibility[layer] ? 'visible' : 'none');
+    map.setLayoutProperty('restaurant-glow', 'visibility', layerVisibility[layer] ? 'visible' : 'none');
+  } else if (layer === 'labels') {
+    map.setLayoutProperty('suburb-labels', 'visibility', layerVisibility[layer] ? 'visible' : 'none');
+  }
+}
+
+// ── Panels ──
+function toggleSidePanel() {
+  const panel = document.getElementById('sidePanel');
+  panel.classList.toggle('collapsed');
+  const btn = document.getElementById('panelToggle');
+  btn.innerHTML = panel.classList.contains('collapsed') ? '&#9654;' : '&#9664;';
+}
+
+function toggleFilterPanel() {
+  document.getElementById('filterPanel').classList.toggle('collapsed');
+}
+
+// ── Filters ──
+document.querySelectorAll('.filter-check input[data-cuisine]').forEach(cb => {
+  cb.addEventListener('change', applyFilters);
+});
+document.getElementById('showIndependent').addEventListener('change', applyFilters);
+
+function applyFilters() {
+  const activeCuisines = [...document.querySelectorAll('.filter-check input[data-cuisine]:checked')].map(cb => cb.dataset.cuisine);
+  const minRating = parseFloat(document.getElementById('ratingFilter').value);
+  const minReviews = parseInt(document.getElementById('reviewFilter').value);
+  const independentOnly = document.getElementById('showIndependent').checked;
+
+  document.getElementById('ratingValue').textContent = minRating > 0 ? `${minRating}+` : 'Any';
+  document.getElementById('reviewValue').textContent = minReviews > 0 ? `${minReviews}+` : 'Any';
+
+  const filterExpr = ['all',
+    ['in', ['get', 'cuisine'], ['literal', activeCuisines]],
+    ['>=', ['get', 'rating'], minRating],
+    ['>=', ['get', 'reviews'], minReviews]
+  ];
+
+  if (independentOnly) {
+    filterExpr.push(['!=', ['get', 'chain'], true]);
+  }
+
+  map.setFilter('restaurant-dots', filterExpr);
+  map.setFilter('restaurant-glow', filterExpr);
+}
+
+function resetFilters() {
+  document.querySelectorAll('.filter-check input[data-cuisine]').forEach(cb => cb.checked = true);
+  document.getElementById('ratingFilter').value = 0;
+  document.getElementById('reviewFilter').value = 0;
+  document.getElementById('showIndependent').checked = false;
+  applyFilters();
+  // Remove cuisine filter so all show
+  map.setFilter('restaurant-dots', null);
+  map.setFilter('restaurant-glow', null);
+}
+
+// ── Keyboard shortcut ──
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    selectedSuburb = null;
+    document.getElementById('suburbDetail').style.display = 'none';
+    map.flyTo({ center: [144.96, -37.82], zoom: 9.8, pitch: 15, duration: 800 });
+  }
+});
+
+// Expose functions for inline onclick handlers
+window.toggleLayer = toggleLayer;
+window.toggleSidePanel = toggleSidePanel;
+window.toggleFilterPanel = toggleFilterPanel;
+window.selectSuburb = selectSuburb;
+window.resetFilters = resetFilters;
+window.applyFilters = applyFilters;
+window.map = map;
+
+} // end initMap
+</script>
+</body>
+</html>
