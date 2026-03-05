@@ -244,6 +244,16 @@ window.addEventListener('load', function() {
 // ═══════════════════════════════════════════════════════════════
 // If dashboard_data.js was loaded externally, skip synthetic data
 // ═══════════════════════════════════════════════════════════════
+// These must be defined before initMap is called (used in tooltips and panels)
+const cuisineLabels = {
+  south_indian:"South Indian", north_indian:"North Indian", sri_lankan:"Sri Lankan",
+  nepalese:"Nepalese", bangladeshi:"Bangladeshi", general:"Indian Restaurant"
+};
+const cuisineColors = {
+  south_indian:"#F59E0B", north_indian:"#60A5FA", sri_lankan:"#A78BFA",
+  nepalese:"#34D399", bangladeshi:"#F472B6", general:"#9CA3AF"
+};
+
 if (typeof window.sa2GeoJSON !== 'undefined') {
   // Real data loaded from prepare_data.py output — jump to map init
   initMap(window.sa2GeoJSON, window.restaurantGeoJSON, window.labelGeoJSON, window.suburbs, window.restaurants);
